@@ -1,9 +1,9 @@
 package main
 
 import (
-	"strconv"
 	"fmt"
-	)
+	"strconv"
+)
 
 const maxScalarFinderIterations = 100
 
@@ -194,7 +194,7 @@ func bcd(xs *[]int) int {
 	for ; candidate > 1; candidate -= 1 {
 		ok := true
 		for i := 0; ok && i < cap(*xs); i += 1 {
-			ok = ok && (*xs)[i] % candidate == 0
+			ok = ok && (*xs)[i]%candidate == 0
 		}
 		if ok {
 			return candidate
@@ -228,13 +228,13 @@ func findScalars(x, y int) (int, int, bool) {
 
 	// TODO: discover relation between input and required number of iterations
 	for i := 0; i < maxScalarFinderIterations; i += 1 {
-		if a * x - b *y == 1 {
+		if a*x-b*y == 1 {
 			return a, b, false
 		}
-		if  b *y - a * x == 1 {
+		if b*y-a*x == 1 {
 			return a, b, true
 		}
-		if a *x > b *y {
+		if a*x > b*y {
 			b += sy
 		} else {
 			b = sy
@@ -245,26 +245,28 @@ func findScalars(x, y int) (int, int, bool) {
 	panic(fmt.Sprintf("maximum iterations exceeded for %d and %d", x, y))
 }
 
-func (m Matrix) GaussReduction() Matrix {
-	dimRow, dimCol := m.Dims()
+func suitable(x, y int) bool {
+	return x%y != 0 && y%x != 0 && !multiplesOfRelativePrimes(x, y)
+}
 
-	for done := 0; done < dimCol; done += 1 {
+func (m Matrix) GaussReduction() Matrix {
+	rows, cols := m.Dims()
+
+	for current := 0; current < cols; current += 1 {
 		found := false
-		for i := done; !found && i < dimRow - 1; i += 1 {
-			x := m.Get(i, done)
+		for i := current; !found && i < rows-1; i += 1 {
+			x := m.Get(i, current)
 			if x == 0 {
 				continue
 			} else if abs(x) == 1 {
 				found = true
-				m.SwapRow(done, i)
+				m.SwapRow(current, i)
 			} else {
-				for k := i + 1; !found && k < dimRow; k += 1 {
-					y := m.Get(k, done)
+				for k := i + 1; !found && k < rows; k += 1 {
+					y := m.Get(k, current)
 					if y == 0 {
-						break
-					}
-
-					if !multiplesOfRelativePrimes(x, y) {
+						continue
+					} else if suitable(x, y) {
 						found = true
 						a, b, flip := findScalars(x, y)
 						top, other := i, k
@@ -273,18 +275,17 @@ func (m Matrix) GaussReduction() Matrix {
 							a, b = b, a
 						}
 
-						v1 := m.rows[top].Multiply(a)
-						v2 := m.rows[other].Multiply(b)
+						v := m.rows[other].Multiply(b)
 
-						m.rows[top] = v1.Minus(v2)
-						m.SwapRow(top, done)
+						m.rows[top] = m.rows[top].Multiply(a).Minus(v)
+						m.SwapRow(top, current)
 					}
 				}
 			}
 		}
 
-		for i := done + 1; found && i < dimRow; i += 1 {
-			m.rows[i] = m.rows[i].Minus(m.rows[done].Multiply(m.Get(i, done)))
+		for i := current + 1; found && i < rows; i += 1 {
+			m.rows[i] = m.rows[i].Minus(m.rows[current].Multiply(m.Get(i, current)))
 		}
 	}
 
@@ -296,11 +297,11 @@ func (m Matrix) GaussJordan() Matrix {
 	rows, cols := m2.Dims()
 
 	if rows == cols {
-		m2.rows[rows-1] = IdentityVector(rows - 1, cols)
+		m2.rows[rows-1] = IdentityVector(rows-1, cols)
 	}
 
-	for j := 1; j < cols; j += 1 {
-		for i := 0; i < j; i += 1 {
+	for j := 1; j < cols && j < rows; j += 1 {
+		for i := 0; i < j && i < rows; i += 1 {
 			v := m2.rows[j].Multiply(m2.Get(i, j))
 			m2.rows[i] = m2.rows[i].Minus(v)
 		}
