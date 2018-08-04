@@ -2,9 +2,8 @@ package main
 
 import (
 	"strconv"
-	"nl/hayovanloon/bithacks"
 	"fmt"
-)
+	)
 
 const maxScalarFinderIterations = 100
 
@@ -42,7 +41,7 @@ func (v *Vector) Get(i int) int {
 }
 
 func (v *Vector) Simplify() {
-	bcd := BCD(&v.values)
+	bcd := bcd(&v.values)
 	for i, p := range v.values {
 		v.values[i] = p / bcd
 	}
@@ -55,16 +54,6 @@ func (v *Vector) Simplified() Vector {
 	return v2
 }
 
-func (v *Vector) CompareTo(v2 Vector) int {
-	if v.Length() != v2.Length() {
-		panic("different lengths; cannot compare")
-	}
-
-	// TODO
-
-	return 0
-}
-
 func Multiply(v1 *Vector, v2 *Vector) int {
 	if v1.Length() != v2.Length() {
 		panic("different lengths; cannot multiply")
@@ -72,7 +61,7 @@ func Multiply(v1 *Vector, v2 *Vector) int {
 
 	acc := 0
 	for i := 0; i < v1.Length(); i += 1 {
-		acc += v1.values[i] * v2.values[i]
+		acc += v1.Get(i) * v2.Get(i)
 	}
 
 	return acc
@@ -92,7 +81,7 @@ func (v Vector) Minus(v2 Vector) Vector {
 		panic("different lengths")
 	}
 	for i := 0; i < v.Length(); i += 1 {
-		result.values[i] = v.values[i] - v2.values[i]
+		result.values[i] = v.Get(i) - v2.Get(i)
 	}
 	return result
 }
@@ -125,7 +114,7 @@ func (m Matrix) Get(i, j int) int {
 	if i < 0 || rows <= i || j < 0 || cols <= j {
 		panic(fmt.Sprintf("out of bounds: %d, %d", i, j))
 	}
-	return m.rows[i].values[j]
+	return m.rows[i].Get(j)
 }
 
 func (m Matrix) SwapRow(i, k int) {
@@ -142,10 +131,10 @@ func (m Matrix) Transpose() Matrix {
 	r, c := m.Dims()
 
 	vs := make([]Vector, c)
-	for ri, _ := range vs {
-		vs[ri] = Vector{make([]int, r)}
-		for ci, row := range m.rows {
-			vs[ri].values[ci] = row.Get(ri)
+	for i := range vs {
+		vs[i] = Vector{make([]int, r)}
+		for j, row := range m.rows {
+			vs[i].values[j] = row.Get(i)
 		}
 	}
 
@@ -176,10 +165,23 @@ func (m Matrix) Simplify() Matrix {
 	return m
 }
 
-func MinAbs(xs *[]int) int {
+func abs(x int) int {
+	// from: http://graphics.stanford.edu/~seander/bithacks.html
+	mask := x >> 63
+	return (x + mask) ^ mask
+}
+
+func sign(x int) int {
+	if x > 0 {
+		return 1
+	}
+	return int(int64(x) >> 63)
+}
+
+func minAbs(xs *[]int) int {
 	min := int(^uint(0) >> 1)
 	for _, x := range *xs {
-		absX := int(bithacks.Abs64(int64(x)))
+		absX := int(abs(x))
 		if absX < min {
 			min = absX
 		}
@@ -187,8 +189,8 @@ func MinAbs(xs *[]int) int {
 	return min
 }
 
-func BCD(xs *[]int) int {
-	candidate := MinAbs(xs)
+func bcd(xs *[]int) int {
+	candidate := minAbs(xs)
 	for ; candidate > 1; candidate -= 1 {
 		ok := true
 		for i := 0; ok && i < cap(*xs); i += 1 {
@@ -202,8 +204,9 @@ func BCD(xs *[]int) int {
 }
 
 func multiplesOfRelativePrimes(x, y int) bool {
-	bcd := BCD(&[]int{x, y})
-	return bcd > 1 && BCD(&[]int{x / bcd, y / bcd}) == 1
+	// TODO: probably not a mathematically sound implementation
+	a := bcd(&[]int{x, y})
+	return a > 1 && bcd(&[]int{x / a, y / a}) == 1
 }
 
 func findScalars(x, y int) (int, int, bool) {
@@ -217,8 +220,8 @@ func findScalars(x, y int) (int, int, bool) {
 		panic("multiples of relative primes")
 	}
 
-	sx := bithacks.Sign(int64(x))
-	sy := bithacks.Sign(int64(y))
+	sx := sign(x)
+	sy := sign(y)
 
 	a := sx
 	b := sy
@@ -251,7 +254,7 @@ func (m Matrix) GaussReduction() Matrix {
 			x := m.Get(i, done)
 			if x == 0 {
 				continue
-			} else if bithacks.Abs64(int64(x)) == 1 {
+			} else if abs(x) == 1 {
 				found = true
 				m.SwapRow(done, i)
 			} else {
@@ -292,18 +295,14 @@ func (m Matrix) GaussJordan() Matrix {
 	m2 := m.GaussReduction()
 	rows, cols := m2.Dims()
 
-	for j := 1; j < rows && j < cols; j += 1 {
-		if j == rows - 1 && j == cols - 1 {
-			m2.rows[j] = IdentityVector(j, cols)
-		}
-		v := m2.rows[j]
-		for i := 0; i < rows && i < cols; i += 1 {
-			if j == i {
-				continue
-			}
+	if rows == cols {
+		m2.rows[rows-1] = IdentityVector(rows - 1, cols)
+	}
 
-			v2 := v.Multiply(m2.Get(i, j))
-			m2.rows[i] = m2.rows[i].Minus(v2)
+	for j := 1; j < cols; j += 1 {
+		for i := 0; i < j; i += 1 {
+			v := m2.rows[j].Multiply(m2.Get(i, j))
+			m2.rows[i] = m2.rows[i].Minus(v)
 		}
 	}
 	return m2

@@ -17,7 +17,7 @@ func TestMinAbs(t *testing.T) {
 		{[]int{-2, -6, -9}, 2},
 	}
 	for _, c := range cases {
-		if output := MinAbs(&c.input); output != c.expected {
+		if output := minAbs(&c.input); output != c.expected {
 			t.Errorf("expected %v, got %v", c.expected, output)
 		}
 	}
@@ -36,7 +36,7 @@ func TestBCD(t *testing.T) {
 		{[]int{1}, 1},
 	}
 	for _, c := range cases {
-		if output := BCD(&c.input); output != c.expected {
+		if output := bcd(&c.input); output != c.expected {
 			t.Errorf("expected %v, got %v", c.expected, output)
 		}
 	}
