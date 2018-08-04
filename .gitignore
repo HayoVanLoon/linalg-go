@@ -1,0 +1,11 @@
+tmp/**
+target/**
+bin/**
+.classpath
+.project
+.settings/**
+.idea/**
+*.iml
+src/main/webapp/static/css/materialize/**
+src/main/webapp/static/css/fonts/**
+src/main/webapp/static/js/materialize/**
