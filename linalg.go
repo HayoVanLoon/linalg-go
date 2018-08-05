@@ -249,6 +249,10 @@ func suitable(x, y int) bool {
 	return x%y != 0 && y%x != 0 && !multiplesOfRelativePrimes(x, y)
 }
 
+func multiples(x, y int) bool {
+	return x%y == 0 || y%x == 0
+}
+
 func (m Matrix) GaussReduction() Matrix {
 	rows, cols := m.Dims()
 
@@ -260,13 +264,24 @@ func (m Matrix) GaussReduction() Matrix {
 				continue
 			} else if abs(x) == 1 {
 				found = true
+				m.rows[i] = m.rows[i].Multiply(x)
 				m.SwapRow(current, i)
 			} else {
 				for k := i + 1; !found && k < rows; k += 1 {
 					y := m.Get(k, current)
 					if y == 0 {
 						continue
-					} else if suitable(x, y) {
+					}
+
+					if x%y == 0 {
+						m.SwapRow(i, k)
+						x, y = y, x
+					}
+
+					if y%x == 0 {
+						v := m.rows[i].Multiply(y / x)
+						m.rows[k] = m.rows[k].Minus(v)
+					} else if !multiplesOfRelativePrimes(x, y) {
 						found = true
 						a, b, flip := findScalars(x, y)
 						top, other := i, k
@@ -327,7 +342,9 @@ func main() {
 
 	fmt.Println()
 
-	m4 := Matrix{[]Vector{{[]int{2, 3, 1, 5}}, {[]int{5, 4, 2, 9}},
+	//	m4 := Matrix{[]Vector{{[]int{2, 3, 1, 5}}, {[]int{4, 4, 2, 9}},
+	//		{[]int{4, 2, 7, 8}}}}
+	m4 := Matrix{[]Vector{{[]int{4, 3, 1, 5}}, {[]int{4, 4, 2, 9}},
 		{[]int{4, 2, 7, 8}}}}
 	fmt.Println(m4.GaussReduction())
 
@@ -337,7 +354,7 @@ func main() {
 	fmt.Println(m5.GaussReduction())
 
 	fmt.Println()
-	fmt.Println(m2.GaussJordan())
+	//	fmt.Println(m2.GaussJordan())
 	fmt.Println()
-	fmt.Println(m4.GaussJordan())
+	//	fmt.Println(m4.GaussJordan())
 }
