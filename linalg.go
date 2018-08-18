@@ -85,125 +85,54 @@ func (m Matrix) Simplify() Matrix {
 	return m
 }
 
-func abs(x int) int {
-	// from: http://graphics.stanford.edu/~seander/bithacks.html
-	mask := x >> 63
-	return (x + mask) ^ mask
-}
-
-func sign(x int) int {
-	if x > 0 {
-		return 1
+func (m Matrix) Copy() Matrix {
+	m2 := Matrix{make([]Vector, cap(m.rows))}
+	for i, v := range m.rows {
+		m2.rows[i] = v.Copy()
 	}
-	return int(int64(x) >> 63)
-}
-
-func minAbs(xs *[]int) int {
-	min := int(^uint(0) >> 1)
-	for _, x := range *xs {
-		absX := int(abs(x))
-		if absX < min {
-			min = absX
-		}
-	}
-	return min
-}
-
-func bcd(xs *[]int) int {
-	candidate := minAbs(xs)
-	for ; candidate > 1; candidate -= 1 {
-		ok := true
-		for i := 0; ok && i < cap(*xs); i += 1 {
-			ok = ok && (*xs)[i]%candidate == 0
-		}
-		if ok {
-			return candidate
-		}
-	}
-	return 1
-}
-
-func multiplesOfRelativePrimes(x, y int) bool {
-	// TODO: probably not a mathematically sound implementation
-	a := bcd(&[]int{x, y})
-	return a > 1 && bcd(&[]int{x / a, y / a}) == 1
-}
-
-func findScalars(x, y int) (int, int, bool) {
-	if x == 0 || y == 0 {
-		panic("arguments cannot be zero")
-	}
-	if y%x == 0 || x%y == 0 {
-		panic("arguments cannot be multiples mof each other")
-	}
-	if multiplesOfRelativePrimes(x, y) {
-		panic("multiples of relative primes")
-	}
-
-	sx := sign(x)
-	sy := sign(y)
-
-	a := sx
-	b := sy
-
-	// TODO: discover relation between input and required number of iterations
-	for i := 0; i < maxScalarFinderIterations; i += 1 {
-		if a*x-b*y == 1 {
-			return a, b, false
-		}
-		if b*y-a*x == 1 {
-			return a, b, true
-		}
-		if a*x > b*y {
-			b += sy
-		} else {
-			b = sy
-			a += sx
-		}
-	}
-
-	panic(fmt.Sprintf("maximum iterations exceeded for %d and %d", x, y))
+	return m2
 }
 
 func (m Matrix) GaussReduction() Matrix {
-	rows, cols := m.Dims()
+	m2 := m.Copy()
+	rows, cols := m2.Dims()
 
 	for current := 0; current < cols; current += 1 {
 		found := false
 		for i := current; i < rows; i += 1 {
-			if m.Get(i, current).IsOne() {
-				m.SwapRow(i, current)
+			if m2.Get(i, current).IsOne() {
+				m2.SwapRow(i, current)
 				found = true
 			}
 		}
 		if found {
 			for j := current + 1; j < rows; j += 1 {
-				v := m.rows[current].Multiply(m.Get(j, current))
-				m.rows[j] = m.rows[j].Minus(v)
+				v := m2.rows[current].Multiply(m2.Get(j, current))
+				m2.rows[j] = m2.rows[j].Minus(v)
 			}
 		} else {
 			for i := current + 1; i < rows; i += 1 {
-				x := m.Get(current, current)
-				y := m.Get(i, current)
+				x := m2.Get(current, current)
+				y := m2.Get(i, current)
 				for !x.IsZero() && !y.IsZero() {
 					if x.Abs().Compare(y.Abs()) >= 0 {
-						v := m.rows[i].Multiply(x.Divide(y))
-						m.rows[current] = m.rows[current].Minus(v)
-						x = m.Get(current, current)
+						v := m2.rows[i].Multiply(x.Divide(y))
+						m2.rows[current] = m2.rows[current].Minus(v)
+						x = m2.Get(current, current)
 					} else {
-						v := m.rows[current].Multiply(y.Divide(x))
-						m.rows[i] = m.rows[i].Minus(v)
-						y = m.Get(i, current)
+						v := m2.rows[current].Multiply(y.Divide(x))
+						m2.rows[i] = m2.rows[i].Minus(v)
+						y = m2.Get(i, current)
 					}
 				}
 				if x.Abs().Compare(y.Abs()) < 0 {
-					m.SwapRow(current, i)
+					m2.SwapRow(current, i)
 				}
 			}
 		}
 	}
 
-	return m
+	return m2
 }
 
 func (m Matrix) GaussJordan() Matrix {
@@ -213,7 +142,7 @@ func (m Matrix) GaussJordan() Matrix {
 	for i := rows - 1; i >= 0; i -= 1 {
 		j := 0
 		for ; j < cols; j += 1 {
-			if !m.Get(i, j).IsZero() {
+			if !m2.Get(i, j).IsZero() {
 				break
 			}
 		}
@@ -238,8 +167,6 @@ func (m Matrix) GaussJordan() Matrix {
 }
 
 func main() {
-	fmt.Println(findScalars(3, 16))
-
 	v1 := IntVector([]int{1, 2, 4})
 	v2 := IntVector([]int{9, 3, 8})
 	inner := Multiply(&v1, &v2)
@@ -261,7 +188,9 @@ func main() {
 	//		{[]int{4, 2, 7, 8}}}}
 	m4 := Matrix{[]Vector{IntVector([]int{10, 3, 1, 5}),
 		IntVector([]int{6, 4, 2, 9}), IntVector([]int{14, 2, 7, 8})}}
-	fmt.Println(m4.GaussReduction())
+	fmt.Println(m4.GaussJordan())
+	fmt.Println()
+	fmt.Println(m4)
 	fmt.Println()
 
 	m42 := Matrix{[]Vector{IntVector([]int{1, 1, 1, 1}),

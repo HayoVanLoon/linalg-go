@@ -41,6 +41,14 @@ func (v *Vector) Get(i int) Real {
 	return v.values[i]
 }
 
+func (v Vector) Copy() Vector {
+	v2 := Vector{make([]Real, v.Length())}
+	for i, r := range v.values {
+		v2.values[i] = r
+	}
+	return v2
+}
+
 func Multiply(v1 *Vector, v2 *Vector) Real {
 	if v1.Length() != v2.Length() {
 		panic("different lengths; cannot multiply")

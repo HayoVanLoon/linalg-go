@@ -21,6 +21,7 @@ type Real interface {
 	IsOne() bool
 	Abs() Real
 	Compare(Real) int
+	Simplify() Real
 	fmt.Stringer
 }
 
@@ -116,10 +117,47 @@ func (r realImpl) Compare(r2 Real) int {
 	return r.Minus(r2).N()
 }
 
+func (r realImpl) Simplify() Real {
+	f := bcd(&[]int{r.n, r.d})
+	return realImpl{r.n / f, r.d / f}
+}
+
 func (r realImpl) String() string {
 	if r.d == 1 {
 		return strconv.Itoa(r.n)
 	} else {
-		return fmt.Sprintf("%v/%v", r.n, r.d)
+		r2 := r.Simplify()
+		return fmt.Sprintf("%v/%v", r2.N(), r2.D())
 	}
+}
+
+func abs(x int) int {
+	// from: http://graphics.stanford.edu/~seander/bithacks.html
+	mask := x >> 63
+	return (x + mask) ^ mask
+}
+
+func minAbs(xs *[]int) int {
+	min := int(^uint(0) >> 1)
+	for _, x := range *xs {
+		absX := int(abs(x))
+		if absX < min {
+			min = absX
+		}
+	}
+	return min
+}
+
+func bcd(xs *[]int) int {
+	candidate := minAbs(xs)
+	for ; candidate > 1; candidate -= 1 {
+		ok := true
+		for i := 0; ok && i < cap(*xs); i += 1 {
+			ok = ok && (*xs)[i]%candidate == 0
+		}
+		if ok {
+			return candidate
+		}
+	}
+	return 1
 }
