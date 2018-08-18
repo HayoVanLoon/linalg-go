@@ -281,19 +281,41 @@ func (m Matrix) GaussReduction() Matrix {
 					if y%x == 0 {
 						v := m.rows[i].Multiply(y / x)
 						m.rows[k] = m.rows[k].Minus(v)
-					} else if !multiplesOfRelativePrimes(x, y) {
-						found = true
-						a, b, flip := findScalars(x, y)
-						top, other := i, k
-						if flip {
-							top, other = k, i
-							a, b = b, a
+					} else {
+						if !multiplesOfRelativePrimes(x, y) {
+							found = true
+							a, b, flip := findScalars(x, y)
+							top, other := i, k
+							if flip {
+								top, other = k, i
+								a, b = b, a
+							}
+
+							v := m.rows[other].Multiply(b)
+
+							m.rows[top] = m.rows[top].Multiply(a).Minus(v)
+							m.SwapRow(top, current)
+						} else {
+							fmt.Println("slapping")
+							for x != 0 && y != 0 {
+								if abs(x) >= abs(y) {
+									v := m.rows[k].Multiply(x / y)
+									m.rows[i] = m.rows[i].Minus(v)
+									x = m.Get(i, current)
+								} else {
+									v := m.rows[i].Multiply(y / x)
+									m.rows[k] = m.rows[k].Minus(v)
+									y = m.Get(k, current)
+								}
+							}
+
+							if x != 0 {
+								m.SwapRow(i, current)
+							} else {
+								m.SwapRow(k, current)
+							}
+							found = m.Get(current, current) == 1
 						}
-
-						v := m.rows[other].Multiply(b)
-
-						m.rows[top] = m.rows[top].Multiply(a).Minus(v)
-						m.SwapRow(top, current)
 					}
 				}
 			}
@@ -344,8 +366,8 @@ func main() {
 
 	//	m4 := Matrix{[]Vector{{[]int{2, 3, 1, 5}}, {[]int{4, 4, 2, 9}},
 	//		{[]int{4, 2, 7, 8}}}}
-	m4 := Matrix{[]Vector{{[]int{4, 3, 1, 5}}, {[]int{4, 4, 2, 9}},
-		{[]int{4, 2, 7, 8}}}}
+	m4 := Matrix{[]Vector{{[]int{10, 3, 1, 5}}, {[]int{6, 4, 2, 9}},
+		{[]int{14, 2, 7, 8}}}}
 	fmt.Println(m4.GaussReduction())
 
 	fmt.Println()
